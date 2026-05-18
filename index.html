@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baby Daily Tracker (Dashboard Fixed)</title>
+    <style>
+        /* --- Color Palette & Reset --- */
+        :root {
+            --bg-color: #f7f9fc;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-muted: #64748b;
+            
+            /* High-contrast soft pastels */
+            --sleep-color: #6c5ce7;
+            --sleep-bg: #f3f0ff;
+            --feed-color: #e67e22;
+            --feed-bg: #fdf6ec;
+            --solids-color: #d35400;
+            --solids-bg: #fbeee6;
+            --diaper-color: #2b8a3e;
+            --diaper-bg: #ebfbee;
+            --summary-color: #008080;
+            --summary-bg: #e6f2f2;
+            --export-color: #24292e;
+            --export-bg: #e1e4e8;
+            --dash-bg: #f1f5f9;
+            --edit-color: #3182ce;
+            --edit-bg: #ebf8ff;
+            --danger-color: #e03131;
+            --danger-bg: #fff5f5;
+            
+            --border-radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 16px;
+            max-width: 500px;
+            margin: 0 auto;
+            padding-bottom: 40px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0 24px 0;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--text-main);
+            font-weight: 700;
+            margin: 0 auto;
+        }
+
+        /* --- Login Screen Styling --- */
+        #login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-box h2 {
+            justify-content: center;
+            margin-bottom: 5px;
+            color: var(--text-main);
+        }
+
+        .login-box p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .login-box input {
+            margin-bottom: 15px;
+        }
+
+        .btn-logout {
+            background-color: var(--danger-bg);
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+            position: absolute;
+            right: 16px;
+        }
+
+        /* --- Common Component Styles --- */
+        #app-container {
+            display: none; /* Hidden until logged in */
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Form Inputs & Time Fields */
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        .time-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            flex: 1;
+        }
+
+        input[type="number"], input[type="text"], input[type="time"], input[type="password"] {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+            color: var(--text-main);
+            background-color: #fff;
+            width: 100%;
+        }
+
+        input[type="time"] {
+            font-weight: 600;
+        }
+
+        input:focus {
+            border-color: #cbd5e1;
+        }
+
+        /* Buttons Base */
+        button {
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        /* --- Mini Dashboard Widget Styling --- */
+        .dashboard-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .dash-widget {
+            flex: 1;
+            border-radius: var(--border-radius);
+            padding: 14px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+        }
+        .dash-widget.feed { background-color: var(--feed-bg); border: 1.5px solid var(--feed-color); }
+        .dash-widget.diaper { background-color: var(--diaper-bg); border: 1.5px solid var(--diaper-color); }
+        
+        .dash-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .dash-widget.feed .dash-title { color: var(--feed-color); }
+        .dash-widget.diaper .dash-title { color: var(--diaper-color); }
+        
+        .dash-time-elapsed {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        .dash-timestamp {
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        /* --- Sleep Specific Toggles & Layout --- */
+        .sleep-card { border-left: 6px solid var(--sleep-color); }
+        .sleep-card h2 { color: var(--sleep-color); }
+        
+        .sleep-mode-toggle {
+            display: flex;
+            background-color: #edf2f7;
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.82rem;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-muted);
+        }
+        .mode-btn.active {
+            background-color: #ffffff;
+            color: var(--sleep-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .timer-display {
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 10px 0 18px 0;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-main);
+        }
+        .btn-sleep { background-color: var(--sleep-bg); color: var(--sleep-color); border: 2px solid var(--sleep-color); }
+        .btn-sleep.active { background-color: var(--sleep-color); color: white; }
+
+        /* --- Section Specific Styling --- */
+        .feed-card { border-left: 6px solid var(--feed-color); }
+        .feed-card h2 { color: var(--feed-color); }
+        .btn-feed-bm { background-color: var(--feed-bg); color: var(--feed-color); border: 2px solid var(--feed-color); flex: 1; }
+        .btn-feed-bottle { background-color: #fff; color: var(--feed-color); border: 2px solid var(--feed-color); flex: 1; }
+
+        .solids-card { border-left: 6px solid var(--solids-color); }
+        .solids-card h2 { color: var(--solids-color); }
+
+        .diaper-card { border-left: 6px solid var(--diaper-color); }
+        .diaper-card h2 { color: var(--diaper-color); }
+        .diaper-options {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .btn-diaper {
+            flex: 1;
+            background-color: #ffffff;
+            border: 2px solid #e2e8f0;
+            color: var(--text-muted);
+            padding: 12px;
+        }
+        .btn-diaper.selected {
+            background-color: var(--diaper-bg);
+            border-color: var(--diaper-color);
+            color: var(--diaper-color);
+        }
+
+        /* Summary Dashboard Box */
+        .summary-card {
+            border-left: 6px solid var(--summary-color);
+            background-color: var(--summary-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+        }
+        .summary-card h3 { font-size: 1rem; color: var(--summary-color); }
+        .summary-total { font-size: 1.5rem; font-weight: 700; color: var(--summary-color); }
+
+        /* --- History Log Tabs & Export Setup --- */
+        .history-card {
+            max-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        .history-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            background-color: #edf2f7;
+            padding: 4px;
+            border-radius: 12px;
+            flex: 3;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 4px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-muted);
+        }
+        .tab-btn.active {
+            background-color: #ffffff;
+            color: var(--text-main);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+        
+        .btn-export {
+            flex: 1;
+            background-color: var(--export-bg);
+            color: var(--text-main);
+            padding: 12px 8px;
+            font-size: 0.8rem;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+
+        .history-list {
+            overflow-y: auto;
+            list-style: none;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 14px 0;
+            border-bottom: 1px solid #edf2f7;
+            gap: 10px;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .item-details {
+            flex: 1;
+        }
+        .item-tag {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        .tag-sleep { background-color: var(--sleep-bg); color: var(--sleep-color); }
+        .tag-feeding { background-color: var(--feed-bg); color: var(--feed-color); }
+        .tag-solids { background-color: var(--solids-bg); color: var(--solids-color); }
+        .tag-diaper { background-color: var(--diaper-bg); color: var(--diaper-color); }
+        
+        .item-text {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+            word-break: break-word;
+        }
+        .item-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            align-self: center;
+        }
+        .btn-action {
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+        .btn-edit { background-color: var(--edit-bg); color: var(--edit-color); }
+        .btn-delete { background-color: var(--danger-bg); color: var(--danger-color); }
+
+        /* Inline Edit Container */
+        .edit-mode-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            padding: 4px 0;
+        }
+        .edit-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: -4px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 20px 0;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- AUTHENTICATION OVERLAY -->
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>🔒 Security Login</h2>
+            <p id="authMessage">Enter credentials or create a new local account to access your logs.</p>
+            <input type="text" id="authUsername" placeholder="Username" autocomplete="username">
+            <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
+            <button class="btn-full" style="background-color: var(--edit-color); color: white;" onclick="authenticateUser()">Login / Register</button>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER (Hidden until Auth) -->
+    <div id="app-container">
+        <header>
+            <h1>Baby Tracker</h1>
+            <button class="btn-logout" onclick="logoutUser()">Logout</button>
+        </header>
+
+        <!-- LIVE RELATIVE TIMING DASHBOARD -->
+        <div class="dashboard-container">
+            <div class="dash-widget feed">
+                <div class="dash-title">🍼 Last Bottle</div>
+                <div class="dash-time-elapsed" id="dashFeedElapsed">No data yet</div>
+                <div class="dash-timestamp" id="dashFeedTime">-</div>
+            </div>
+            <div class="dash-widget diaper">
+                <div class="dash-title">👶 Last Diaper</div>
+                <div class="dash-time-elapsed" id="dashDiaperElapsed">No data yet</div>
+                <div class="dash-timestamp" id="dashDiaperTime">-</div>
+            </div>
+        </div>
+
+        <!-- 1. SLEEP TRACKER -->
+        <div class="card sleep-card">
+            <h2>🌙 Sleep</h2>
+            <div class="sleep-mode-toggle">
+                <button class="mode-btn active" id="mode-live" onclick="setSleepMode('live')">Live Timer</button>
+                <button class="mode-btn" id="mode-manual" onclick="setSleepMode('manual')">Manual Entry</button>
+            </div>
+            
+            <div id="sleep-live-panel">
+                <div class="timer-display" id="timerDisplay">00:00:00</div>
+                <button class="btn-full btn-sleep" id="sleepBtn" onclick="toggleSleep()">Start Nap</button>
+            </div>
+
+            <div id="sleep-manual-panel" style="display: none;">
+                <div class="input-row">
+                    <div class="time-wrapper">
+                        <label for="sleepManualStart">Sleep Start</label>
+                        <input type="time" id="sleepManualStart">
+                    </div>
+                    <div class="time-wrapper">
+                        <label for="sleepManualEnd">Sleep End</label>
+                        <input type="time" id="sleepManualEnd">
+                    </div>
+                </div>
+                <button class="btn-full" style="background-color: var(--sleep-color); color: white;" onclick="addManualSleep()">Log Manual Sleep</button>
+            </div>
+        </div>
+
+        <!-- 2. FEEDING TRACKER -->
+        <div class="card feed-card">
+            <h2>🍼 Feeding</h2>
+            <div class="input-row">
+                <input type="number" id="feedAmount" placeholder="Amount (ml)" inputmode="numeric" min="0" style="flex: 2;">
+                <div class="time-wrapper">
+                    <label for="feedTime">Time</label>
+                    <input type="time" id="feedTime">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-feed-bm" onclick="addFeeding('Breastmilk')">Breastmilk</button>
+                <button class="btn-feed-bottle" onclick="addFeeding('Bottle')">Bottle Feed</button>
+            </div>
+        </div>
+
+        <!-- 3. SOLID FOOD INTAKE -->
+        <div class="card solids-card">
+            <h2>🥣 Solid Food</h2>
+            <div class="input-row">
+                <input type="text" id="solidsText" placeholder="What did baby eat? (e.g. Avocado purée)" style="flex: 2;">
+                <div class="time-wrapper">
+                    <label for="solidsTime">Time</label>
+                    <input type="time" id="solidsTime">
+                </div>
+            </div>
+            <button class="btn-full" style="background-color: var(--solids-color); color: white;" onclick="addSolids()">Log Solid Food</button>
+        </div>
+
+        <!-- 4. DIAPER TRACKER -->
+        <div class="card diaper-card">
+            <h2>👶 Diaper</h2>
+            <div class="diaper-options">
+                <button class="btn-diaper" id="btn-wet" onclick="selectDiaper('Wet')">Wet</button>
+                <button class="btn-diaper" id="btn-poop" onclick="selectDiaper('Poop')">Poop</button>
+                <button class="btn-diaper" id="btn-both" onclick="selectDiaper('Both')">Both</button>
+            </div>
+            <div class="input-row">
+                <input type="text" id="diaperNotes" placeholder="Optional notes..." style="flex: 2;">
+                <div class="time-wrapper">
+                    <label for="diaperTime">Time</label>
+                    <input type="time" id="diaperTime">
+                </div>
+            </div>
+            <button class="btn-full" style="background-color: var(--diaper-color); color: white;" onclick="addDiaper()">Log Diaper</button>
+        </div>
+
+        <!-- TOTAL MILK SUMMARY BOX -->
+        <div class="card summary-card">
+            <h3>📊 Total Milk Intake (<span id="summaryDayLabel">Today</span>)</h3>
+            <div class="summary-total" id="totalMilkDisplay">0 ml</div>
+        </div>
+
+        <!-- 5. HISTORY LOG -->
+        <div class="card history-card">
+            <div class="history-controls">
+                <div class="tab-bar">
+                    <button class="tab-btn active" id="tab-0" onclick="switchDayTab(0)">Today</button>
+                    <button class="tab-btn" id="tab-1" onclick="switchDayTab(1)">Yesterday</button>
+                    <button class="tab-btn" id="tab-2" onclick="switchDayTab(2)">2 Days Ago</button>
+                </div>
+                <button class="btn-export" onclick="exportLogsToIOS()">📤 Share Logs</button>
+            </div>
+            <ul class="history-list" id="historyList">
+                <!-- Dynamic items load here -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- APP ENGINE (JAVASCRIPT) -->
+    <script>
+        let logs = [];
+        let timerInterval = null;
+        let sleepStartTime = null;
+        let selectedDiaperType = null;
+        let activeTabOffset = 0; 
+        let db = null;
+        let isAppInitialized = false;
+
+        // --- Authentication & Login System ---
+        function checkLoginState() {
+            const isLoggedIn = localStorage.getItem('bt_isLoggedIn');
+            if (isLoggedIn === 'true') {
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+                if (!isAppInitialized) {
+                    initDatabase();
+                    isAppInitialized = true;
+                }
+            } else {
+                document.getElementById('login-overlay').style.display = 'flex';
+                document.getElementById('app-container').style.display = 'none';
+            }
+        }
+
+        function authenticateUser() {
+            const user = document.getElementById('authUsername').value.trim();
+            const pass = document.getElementById('authPassword').value.trim();
+            
+            if (!user || !pass) {
+                alert("Please enter both a username and password.");
+                return;
+            }
+
+            const savedUser = localStorage.getItem('bt_user');
+            const savedPass = localStorage.getItem('bt_pass');
+
+            if (!savedUser) {
+                // First time setup - create account
+                localStorage.setItem('bt_user', user);
+                localStorage.setItem('bt_pass', pass);
+                localStorage.setItem('bt_isLoggedIn', 'true');
+                checkLoginState();
+            } else {
+                // Returning user - verify credentials
+                if (user === savedUser && pass === savedPass) {
+                    localStorage.setItem('bt_isLoggedIn', 'true');
+                    checkLoginState();
+                } else {
+                    alert("Invalid username or password. Please try again.");
+                }
+            }
+        }
+
+        function logoutUser() {
+            localStorage.setItem('bt_isLoggedIn', 'false');
+            document.getElementById('authPassword').value = ''; 
+            checkLoginState();
+        }
+
+        // Initialize Authentication Check on Load
+        document.addEventListener('DOMContentLoaded', checkLoginState);
+
+        // --- Database Infrastructure (IndexedDB) ---
+        function initDatabase() {
+            const dbName = "BabyTrackerDatabaseV11";
+            const request = indexedDB.open(dbName, 1);
+
+            request.onerror = function() { console.error("Database failed to open"); };
+            request.onsuccess = function(e) {
+                db = e.target.result;
+                loadDataFromDatabase();
+            };
+            request.onupgradeneeded = function(e) {
+                let dbInstance = e.target.result;
+                dbInstance.createObjectStore("logs", { keyPath: "id" });
+                dbInstance.createObjectStore("appState", { keyPath: "key" });
+            };
+        }
+
+        function loadDataFromDatabase() {
+            if (!db) return;
+            const logTx = db.transaction("logs", "readonly");
+            const getAllRequest = logTx.objectStore("logs").getAll();
+            getAllRequest.onsuccess = function() {
+                logs = getAllRequest.result;
+                renderLogs();
+                updateLiveDashboardMetrics();
+            };
+
+            const stateTx = db.transaction("appState", "readonly");
+            const getTimerRequest = stateTx.objectStore("appState").get("sleepStartTime");
+            getTimerRequest.onsuccess = function() {
+                if (getTimerRequest.result) {
+                    sleepStartTime = getTimerRequest.result.value;
+                    const sleepBtn = document.getElementById('sleepBtn');
+                    sleepBtn.textContent = "Stop Nap";
+                    sleepBtn.classList.add('active');
+                    timerInterval = setInterval(updateTimerDisplay, 1000);
+                    updateTimerDisplay();
+                }
+            };
+        }
+
+        function saveLogToDatabase(entry) {
+            if (!db) return;
+            db.transaction("logs", "readwrite").objectStore("logs").put(entry);
+        }
+
+        function deleteLogFromDatabase(id) {
+            if (!db) return;
+            db.transaction("logs", "readwrite").objectStore("logs").delete(id);
+        }
+
+        function setAppState(key, value) {
+            if (!db) return;
+            db.transaction("appState", "readwrite").objectStore("appState").put({ key: key, value: value });
+        }
+
+        function removeAppState(key) {
+            if (!db) return;
+            db.transaction("appState", "readwrite").objectStore("appState").delete(key);
+        }
+
+        // --- Clock Systems ---
+        function resetSectionClocks() {
+            if (document.activeElement.type === "time") return;
+            const now = new Date();
+            const timeString = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+            
+            document.getElementById('feedTime').value = timeString;
+            document.getElementById('solidsTime').value = timeString;
+            document.getElementById('diaperTime').value = timeString;
+            
+            if(!document.getElementById('sleepManualStart').value) {
+                document.getElementById('sleepManualStart').value = timeString;
+                document.getElementById('sleepManualEnd').value = timeString;
+            }
+        }
+        setInterval(resetSectionClocks, 60000);
+        setInterval(updateLiveDashboardMetrics, 10000);
+
+        function setSleepMode(mode) {
+            document.getElementById('mode-live').classList.remove('active');
+            document.getElementById('mode-manual').classList.remove('active');
+            document.getElementById(`mode-${mode}`).classList.add('active');
+
+            if(mode === 'live') {
+                document.getElementById('sleep-live-panel').style.display = 'block';
+                document.getElementById('sleep-manual-panel').style.display = 'none';
+            } else {
+                document.getElementById('sleep-live-panel').style.display = 'none';
+                document.getElementById('sleep-manual-panel').style.display = 'block';
+            }
+        }
+
+        function convertTimeToRawString(timeStr) {
+            if(!timeStr) return "00:00";
+            return timeStr;
+        }
+
+        function formatRawTimeToDisplay(timeStr) {
+            if(!timeStr) return "";
+            const parts = timeStr.split(':');
+            let hours = parseInt(parts[0]);
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; 
+            return `${String(hours).padStart(2, '0')}:${parts[1]} ${ampm}`;
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function calculateSortWeight(dateLabel, rawTimeStr) {
+            return `${dateLabel} ${rawTimeStr}`;
+        }
+
+        function calculateDurationMinutes(startStr, endStr) {
+            const startParts = startStr.split(':');
+            const endParts = endStr.split(':');
+            
+            let startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+            let endMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+            
+            if (endMins < startMins) {
+                endMins += 24 * 60;
+            }
+            return endMins - startMins;
+        }
+
+        function formatDateLabel(date) {
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+
+        function getTargetDateString(offset) {
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() - offset);
+            return formatDateLabel(targetDate);
+        }
+
+        // --- Core Dashboard Analytics Fixed ---
+        function updateLiveDashboardMetrics() {
+            if (logs.length === 0) return;
+
+            const bottleLogs = logs.filter(l => l.type === 'feeding' && l.text.startsWith('Bottle')).sort((a,b) => b.sortKey.localeCompare(a.sortKey));
+            const diaperLogs = logs.filter(l => l.type === 'diaper').sort((a,b) => b.sortKey.localeCompare(a.sortKey));
+
+            renderWidgetCalculations(bottleLogs[0], 'dashFeedElapsed', 'dashFeedTime');
+            renderWidgetCalculations(diaperLogs[0], 'dashDiaperElapsed', 'dashDiaperTime');
+        }
+
+        function renderWidgetCalculations(latestLog, elapsedId, timeId) {
+            const elapsedEl = document.getElementById(elapsedId);
+            const timeEl = document.getElementById(timeId);
+
+            if (!latestLog || !latestLog.rawTime || !latestLog.sortKey) {
+                elapsedEl.textContent = "No data yet";
+                timeEl.textContent = "-";
+                return;
+            }
+
+            const now = new Date();
+            const parts = latestLog.sortKey.split(' ');
+            const monthStr = parts[0];
+            const dayNum = parseInt(parts[1]);
+            const timeParts = parts[2].split(':');
+            
+            const targetLogDate = new Date();
+            targetLogDate.setDate(dayNum);
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            targetLogDate.setMonth(monthNames.indexOf(monthStr));
+            targetLogDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
+
+            if (targetLogDate > now) {
+                targetLogDate.setFullYear(now.getFullYear() - 1);
+            }
+
+            const diffMs = now - targetLogDate;
+            const totalMins = Math.floor(diffMs / 60000);
+
+            if (totalMins < 0) {
+                elapsedEl.textContent = "Future Log";
+                timeEl.textContent = `${latestLog.dateLabel} @ ${latestLog.timestamp}`;
+                return;
+            }
+
+            const hrs = Math.floor(totalMins / 60);
+            const mins = totalMins % 60;
+
+            elapsedEl.textContent = hrs > 0 ? `${hrs}h ${mins}m ago` : `${mins}m ago`;
+            timeEl.textContent = `${latestLog.dateLabel} @ ${latestLog.timestamp}`;
+        }
+
+        // --- Sleep Tracker: Live Timer Mode ---
+        function toggleSleep() {
+            const sleepBtn = document.getElementById('sleepBtn');
+            if (!timerInterval) {
+                sleepStartTime = Date.now();
+                setAppState("sleepStartTime", sleepStartTime);
+                sleepBtn.textContent = "Stop Nap";
+                sleepBtn.classList.add('active');
+                timerInterval = setInterval(updateTimerDisplay, 1000);
+            } else {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                const endTime = Date.now();
+                const durationMs = endTime - sleepStartTime;
+                
+                if (durationMs > 1000) {
+                    const totalMinutes = Math.round(durationMs / 60000);
+                    const startObj = new Date(sleepStartTime);
+                    const now = new Date();
+                    const dateLabelStr = formatDateLabel(now);
+                    const rawTimeStr = String(startObj.getHours()).padStart(2, '0') + ":" + String(startObj.getMinutes()).padStart(2, '0');
+
+                    const logEntry = {
+                        id: Date.now(),
+                        type: 'sleep',
+                        text: `Napped for ${totalMinutes} mins (Started at ${formatTime(startObj)})`,
+                        rawTime: rawTimeStr, 
+                        timestamp: formatTime(startObj), 
+                        dateLabel: dateLabelStr,
+                        sortKey: calculateSortWeight(dateLabelStr, rawTimeStr),
+                        rawFeedAmount: 0
+                    };
+                    logs.push(logEntry);
+                    saveLogToDatabase(logEntry);
+                    renderLogs();
+                }
+                sleepStartTime = null;
+                removeAppState("sleepStartTime");
+                sleepBtn.textContent = "Start Nap";
+                sleepBtn.classList.remove('active');
+                document.getElementById('timerDisplay').textContent = "00:00:00";
+            }
+        }
+
+        function updateTimerDisplay() {
+            if (!sleepStartTime) return;
+            const totalSeconds = Math.floor((Date.now() - sleepStartTime) / 1000);
+            const hrs = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+            const secs = String(totalSeconds % 60).padStart(2, '0');
+            document.getElementById('timerDisplay').textContent = `${hrs}:${mins}:${secs}`;
+        }
+
+        // --- Sleep Tracker: Retroactive Manual Mode ---
+        function addManualSleep() {
+            const startStr = document.getElementById('sleepManualStart').value;
+            const endStr = document.getElementById('sleepManualEnd').value;
+
+            if(!startStr || !endStr) {
+                alert("Please fill in both Sleep Start and Sleep End times.");
+                return;
+            }
+
+            const totalMinutes = calculateDurationMinutes(startStr, endStr);
+            
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() - activeTabOffset);
+            const dateLabelStr = formatDateLabel(targetDate);
+
+            const logEntry = {
+                id: Date.now(),
+                type: 'sleep',
+                text: `Napped for ${totalMinutes} mins (Started at ${formatRawTimeToDisplay(startStr)})`,
+                rawTime: startStr,
+                timestamp: formatRawTimeToDisplay(startStr),
+                dateLabel: dateLabelStr,
+                sortKey: calculateSortWeight(dateLabelStr, startStr),
+                rawFeedAmount: 0
+            };
+
+            logs.push(logEntry);
+            saveLogToDatabase(logEntry);
+            renderLogs();
+        }
+
+        // --- Feeding Logic ---
+        function addFeeding(feedType) {
+            const amountInput = document.getElementById('feedAmount');
+            const manualTime = document.getElementById('feedTime').value;
+            const amount = parseInt(amountInput.value.trim());
+
+            if (!amount || amount <= 0) {
+                alert("Please enter a valid amount in ml.");
+                return;
+            }
+
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() - activeTabOffset);
+            const dateLabelStr = formatDateLabel(targetDate);
+            const cleanRawTime = convertTimeToRawString(manualTime);
+
+            const logEntry = {
+                id: Date.now(),
+                type: 'feeding',
+                text: `${feedType}: ${amount} ml`,
+                rawTime: cleanRawTime,
+                timestamp: formatRawTimeToDisplay(cleanRawTime),
+                dateLabel: dateLabelStr,
+                sortKey: calculateSortWeight(dateLabelStr, cleanRawTime),
+                rawFeedAmount: amount
+            };
+
+            logs.push(logEntry);
+            saveLogToDatabase(logEntry);
+            renderLogs();
+            amountInput.value = '';
+            document.activeElement.blur(); 
+        }
+
+        // --- Solid Food Intake Logic ---
+        function addSolids() {
+            const solidsInput = document.getElementById('solidsText');
+            const manualTime = document.getElementById('solidsTime').value;
+            const foodText = solidsInput.value.trim();
+
+            if (!foodText) {
+                alert("Please type out what baby ate.");
+                return;
+            }
+
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() - activeTabOffset);
+            const dateLabelStr = formatDateLabel(targetDate);
+            const cleanRawTime = convertTimeToRawString(manualTime);
+
+            const logEntry = {
+                id: Date.now(),
+                type: 'solids',
+                text: `Solids: ${foodText}`,
+                rawTime: cleanRawTime,
+                timestamp: formatRawTimeToDisplay(cleanRawTime),
+                dateLabel: dateLabelStr,
+                sortKey: calculateSortWeight(dateLabelStr, cleanRawTime),
+                rawFeedAmount: 0
+            };
+
+            logs.push(logEntry);
+            saveLogToDatabase(logEntry);
+            renderLogs();
+            solidsInput.value = '';
+            document.activeElement.blur();
+        }
+
+        // --- Diaper Logic ---
+        function selectDiaper(type) {
+            selectedDiaperType = type;
+            document.getElementById('btn-wet').classList.remove('selected');
+            document.getElementById('btn-poop').classList.remove('selected');
+            document.getElementById('btn-both').classList.remove('selected');
+            document.getElementById(`btn-${type.toLowerCase()}`).classList.add('selected');
+        }
+
+        function addDiaper() {
+            if (!selectedDiaperType) {
+                alert("Please select a diaper status first.");
+                return;
+            }
+
+            const notesInput = document.getElementById('diaperNotes');
+            const manualTime = document.getElementById('diaperTime').value;
+            const notes = notesInput.value.trim();
+            const detailsText = notes ? `${selectedDiaperType} (${notes})` : selectedDiaperType;
+
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() - activeTabOffset);
+            const dateLabelStr = formatDateLabel(targetDate);
+            const cleanRawTime = convertTimeToRawString(manualTime);
+
+            const logEntry = {
+                id: Date.now(),
+                type: 'diaper',
+                text: `Diaper: ${detailsText}`,
+                rawTime: cleanRawTime,
+                timestamp: formatRawTimeToDisplay(cleanRawTime),
+                dateLabel: dateLabelStr,
+                sortKey: calculateSortWeight(dateLabelStr, cleanRawTime),
+                rawFeedAmount: 0
+            };
+
+            logs.push(logEntry);
+            saveLogToDatabase(logEntry);
+            renderLogs();
+
+            notesInput.value = '';
+            selectedDiaperType = null;
+            document.getElementById('btn-wet').classList.remove('selected');
+            document.getElementById('btn-poop').classList.remove('selected');
+            document.getElementById('btn-both').classList.remove('selected');
+            document.activeElement.blur();
+        }
+
+        // --- Tab Control System ---
+        function switchDayTab(offset) {
+            activeTabOffset = offset;
+            
+            document.getElementById('tab-0').classList.remove('active');
+            document.getElementById('tab-1').classList.remove('active');
+            document.getElementById('tab-2').classList.remove('active');
+            document.getElementById(`tab-${offset}`).classList.add('active');
+
+            const labels = ["Today", "Yesterday", "2 Days Ago"];
+            document.getElementById('summaryDayLabel').textContent = labels[offset];
+
+            renderLogs();
+        }
+
+        // --- Native iOS Share Sheet Integration System ---
+        function exportLogsToIOS() {
+            const activeDateString = getTargetDateString(activeTabOffset);
+            const labels = ["Today", "Yesterday", "2 Days Ago"];
+            const currentTabTitle = labels[activeTabOffset];
+
+            const filteredLogs = logs
+                .filter(entry => entry.dateLabel === activeDateString)
+                .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+            if (filteredLogs.length === 0) {
+                alert("There are no logs to export for this day.");
+                return;
+            }
+
+            let totalMilkExport = 0;
+            let timelineContent = "";
+
+            filteredLogs.forEach(entry => {
+                if (entry.rawFeedAmount) totalMilkExport += entry.rawFeedAmount;
+                timelineContent += `• [${entry.timestamp}] ${entry.text}\n`;
+            });
+
+            const shareText = `👶 BABY LOG SUMMARY\nDate: ${activeDateString} (${currentTabTitle})\n🥛 Total Daily Milk: ${totalMilkExport} ml\n\nTIMELINE:\n${timelineContent}`;
+
+            if (navigator.share) {
+                navigator.share({ title: `Baby Logs - ${activeDateString}`, text: shareText })
+                .catch(err => console.log("Sharing cancelled or blocked."));
+            } else {
+                const dummyTextarea = document.createElement("textarea");
+                document.body.appendChild(dummyTextarea);
+                dummyTextarea.value = shareText;
+                dummyTextarea.select();
+                document.execCommand("copy");
+                document.body.removeChild(dummyTextarea);
+                alert("Logs compiled! Copied summary data to clipboard. Open the Notes App and Paste.");
+            }
+        }
+
+        // --- UI Rendering ---
+        function renderLogs() {
+            const listElement = document.getElementById('historyList');
+            listElement.innerHTML = '';
+
+            const activeDateString = getTargetDateString(activeTabOffset);
+
+            const filteredLogs = logs
+                .filter(entry => entry.dateLabel === activeDateString)
+                .sort((a, b) => {
+                    if (!a.sortKey) return -1;
+                    if (!b.sortKey) return 1;
+                    return a.sortKey.localeCompare(b.sortKey);
+                });
+
+            let totalMilk = 0;
+
+            if (filteredLogs.length === 0) {
+                listElement.innerHTML = '<li class="empty-state">No history items logged for this day.</li>';
+            } else {
+                filteredLogs.forEach(entry => {
+                    if (entry.rawFeedAmount) {
+                        totalMilk += entry.rawFeedAmount;
+                    }
+
+                    const li = document.createElement('li');
+                    li.className = 'history-item';
+                    li.id = `item-${entry.id}`;
+                    
+                    li.innerHTML = `
+                        <div class="item-details" id="content-${entry.id}">
+                            <span class="item-tag tag-${entry.type}">${entry.type}</span>
+                            <div class="item-text">${entry.text}</div>
+                            <div class="item-time">${entry.timestamp}</div>
+                        </div>
+                        <div class="action-buttons" id="actions-${entry.id}">
+                            <button class="btn-action btn-edit" onclick="enterEditMode(${entry.id})">Edit</button>
+                            <button class="btn-action btn-delete" onclick="deleteEntry(${entry.id})">Delete</button>
+                        </div>
+                    `;
+                    listElement.appendChild(li);
+                });
+            }
+
+            document.getElementById('totalMilkDisplay').textContent = `${totalMilk} ml`;
+            updateLiveDashboardMetrics();
+            resetSectionClocks();
+        }
+
+        function enterEditMode(id) {
+            const entry = logs.find(l => l.id === id);
+            if (!entry) return;
+
+            const contentDiv = document.getElementById(`content-${id}`);
+            const actionsDiv = document.getElementById(`actions-${id}`);
+            const currentRawTime = entry.rawTime || "12:00";
+
+            contentDiv.innerHTML = `
+                <span class="item-tag tag-${entry.type}">${entry.type}</span>
+                <div class="edit-mode-container">
+                    <div class="edit-label">Log Description / Details</div>
+                    <input type="text" id="edit-text-${id}" value="${entry.text}" style="width:100%;">
+                    
+                    <div class="edit-label">Event Start Time / Timestamp</div>
+                    <input type="time" id="edit-rawtime-${id}" value="${currentRawTime}" style="width:100%; font-weight:600;">
+                    
+                    <div class="edit-label">Milk Volume Weight (ml - Only if feeding)</div>
+                    <input type="number" id="edit-amount-${id}" value="${entry.rawFeedAmount || 0}" style="width:100%;">
+                </div>
+            `;
+
+            actionsDiv.innerHTML = `
+                <button class="btn-action btn-edit" style="background-color: var(--diaper-color); color:white;" onclick="saveInlineEdit(${id})">Save</button>
+                <button class="btn-action btn-delete" onclick="renderLogs()">Cancel</button>
+            `;
+        }
+
+        function saveInlineEdit(id) {
+            const entry = logs.find(l => l.id === id);
+            if (!entry) return;
+
+            const updatedText = document.getElementById(`edit-text-${id}`).value.trim();
+            const updatedRawTime = document.getElementById(`edit-rawtime-${id}`).value;
+            const updatedAmount = parseInt(document.getElementById(`edit-amount-${id}`).value);
+
+            if (!updatedText || !updatedRawTime) {
+                alert("Log description and event time fields cannot be empty.");
+                return;
+            }
+
+            entry.text = updatedText;
+            entry.rawTime = updatedRawTime;
+            entry.timestamp = formatRawTimeToDisplay(updatedRawTime);
+            
+            entry.sortKey = calculateSortWeight(entry.dateLabel, updatedRawTime);
+            entry.rawFeedAmount = isNaN(updatedAmount) ? 0 : updatedAmount;
+
+            saveLogToDatabase(entry);
+            renderLogs();
+        }
+
+        function deleteEntry(id) {
+            if (confirm("Are you sure you want to delete this log entry?")) {
+                logs = logs.filter(entry => entry.id !== id);
+                deleteLogFromDatabase(id);
+                renderLogs();
+            }
+        }
+    </script>
+</body>
+</html>
